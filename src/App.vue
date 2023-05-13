@@ -7,36 +7,40 @@
         <span>User Address: {{ userAddress }}</span>
     </div>
     <ul class="button-list">
-        <li>
-            <span v-show="userAddress">
-                <button @click="ownerOf">ownerOf</button>
-            </span>
-            <span v-show="userAddress">
-                <input type="text" placeholder="uint256 tokenId" v-model="tokenId">
-            </span>
-        </li>
-        <li>
-            <div v-show="ownerAddress">
-                <span>Owner of tokenId={{ tokenId }} is address={{ ownerAddress }}</span>
-            </div>
-        </li>
-        <li>
-            <span v-show="userAddress">
-                <button @click="ownerOf">ownerOf</button>
-            </span>
-            <span v-show="userAddress">
-                <input type="text" placeholder="uint256 tokenId" v-model="tokenId">
-            </span>
-        </li>
-        <li>
-            <span v-show="userAddress">
-                <button @click="ownerOf">ownerOf</button>
-            </span>
-            <span v-show="userAddress">
-                <input type="text" placeholder="uint256 tokenId" v-model="tokenId">
-            </span>
-        </li>
-  </ul>
+        <div><li>
+                <span v-show="userAddress">
+                    <button @click="ownerOf">ownerOf</button>
+                </span>
+                <span v-show="userAddress">
+                    <input type="text" placeholder="uint256 tokenId" v-model="tokenId1">
+                </span>
+        </li></div>
+        <div v-show="ownerAddress && checked_tokenId1">
+            <span>Owner of tokenId={{ checked_tokenId1 }} is address={{ ownerAddress }}</span>
+        </div>
+        <div><li>
+                <span v-show="userAddress">
+                    <button @click="mint">mint</button>
+                </span>
+                <span v-show="userAddress">
+                    <input type="text" placeholder="address to" v-model="addressTo">
+                </span>
+                <span v-show="userAddress">
+                    <input type="text" placeholder="uint256 tokenId" v-model="tokenId2">
+                </span>
+        </li></div>
+        <div v-show="checked_addressTo && checked_tokenId2">
+            <span>Give tokenId={{ checked_tokenId2 }} to address={{ checked_addressTo }}</span>
+        </div>
+        <div><li>
+                <span v-show="userAddress">
+                    <button>Other function</button>
+                </span>
+                <span v-show="userAddress">
+                    <input type="text" placeholder="Otherfunction" v-model="tokenId3">
+                </span>
+        </li></div>
+    </ul>
 </template>
 
 <style scoped>
@@ -80,7 +84,13 @@ export default {
         return {
             userAddress: "",
             ownerAddress: "",
-            tokenId: ""
+            tokenId1: "",
+            checked_tokenId1: "",
+            tokenId2: "",
+            checked_tokenId2: "",
+            tokenId3: "",
+            addressTo: "",
+            checked_addressTo: ""
         }
     },
     methods: {
@@ -104,11 +114,16 @@ export default {
             return contract
         },
         async ownerOf() {
-            // console.log(this.tokenId)
-            // console.log(tokenId1)
-            const contract = this.Contract();
-            const result = await contract.ownerOf(this.tokenId)
+            const contract = this.Contract()
+            const result = await contract.ownerOf(this.tokenId1)
             this.ownerAddress = result
+            this.checked_tokenId1 = this.tokenId1
+        },
+        async mint() {
+            const contract = this.Contract()
+            await contract.mint(this.addressTo, this.tokenId2)
+            this.checked_tokenId2 = this.tokenId2
+            this.checked_addressTo = this.addressTo
         }
     },
 }
