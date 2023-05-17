@@ -14,6 +14,17 @@
                 <span v-show="userAddress">
                     <input type="text" placeholder="uint256 tokenId" v-model="tokenId1">
                 </span>
+                <span v-show="userAddress">
+                    <input type="text" placeholder="uint256 tokenId" v-model="tokenId1">
+                </span> 
+        </li></div>
+        <div><li>
+                <span v-show="userAddress">
+                    <button @click="ownerOf">ownerOf</button>
+                </span>
+                <span v-show="userAddress">
+                    <input type="text" placeholder="uint256 tokenId" v-model="tokenId1">
+                </span>
         </li></div>
         <div v-show="ownerAddress && checked_tokenId1">
             <span>Owner of tokenId={{ checked_tokenId1 }} is address={{ ownerAddress }}</span>
@@ -46,6 +57,8 @@
 <style scoped>
 /* Your styles here */
 ul.button-list {
+
+    text-align: left;
     list-style-type: none;
     margin: 0;
     padding: 0;
