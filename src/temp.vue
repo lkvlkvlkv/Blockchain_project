@@ -18,9 +18,9 @@
     </div>
     <span v-show="userAddress">
     <TH class = "bottom">
-        <input type="text" class = "A" placeholder = "Uint256 Token ID" >
-        <input type="text" class = "B" placeholder = "Address To" >
-        <input type="text" class = "C" placeholder = "Uint256 Token ID" >
+        <input type="text" class = "A" placeholder = "Uint256 Token ID" v-model="checked_tokenId1">
+        <input type="text" class = "B" placeholder = "Address To" v-model="addressTo">
+        <input type="text" class = "C" placeholder = "Uint256 Token ID" v-model="checked_tokenId2">
         <input type="text" class = "D" placeholder = "Other Function" >
         <button class = "owner" @click="ownerOf">Owner Of</button>
         <button class = "mint" @click="mint">Mint</button>

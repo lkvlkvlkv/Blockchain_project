@@ -1,154 +1,126 @@
 <template>
-    <img alt="Vue logo" src="./assets/logo.png" />
-    <div v-show="!userAddress">
-        <button @click="checkLogin">登入</button>
-    </div>
-    <div v-show="userAddress">
-        <span>User Address: {{ userAddress }}</span>
-    </div>
-    <ul class="button-list">
-        <div><li>
-                <span v-show="userAddress">
-                    <button @click="ownerOf">ownerOf</button>
-                </span>
-                <span v-show="userAddress">
-                    <input type="text" placeholder="uint256 tokenId" v-model="tokenId1">
-                </span>
-                <span v-show="userAddress">
-                    <input type="text" placeholder="uint256 tokenId" v-model="tokenId1">
-                </span> 
-        </li></div>
-        <div><li>
-                <span v-show="userAddress">
-                    <button @click="ownerOf">ownerOf</button>
-                </span>
-                <span v-show="userAddress">
-                    <input type="text" placeholder="uint256 tokenId" v-model="tokenId1">
-                </span>
-        </li></div>
-        <div v-show="ownerAddress && checked_tokenId1">
-            <span>Owner of tokenId={{ checked_tokenId1 }} is address={{ ownerAddress }}</span>
-        </div>
-        <div><li>
-                <span v-show="userAddress">
-                    <button @click="mint">mint</button>
-                </span>
-                <span v-show="userAddress">
-                    <input type="text" placeholder="address to" v-model="addressTo">
-                </span>
-                <span v-show="userAddress">
-                    <input type="text" placeholder="uint256 tokenId" v-model="tokenId2">
-                </span>
-        </li></div>
-        <div v-show="checked_addressTo && checked_tokenId2">
-            <span>Give tokenId={{ checked_tokenId2 }} to address={{ checked_addressTo }}</span>
-        </div>
-        <div><li>
-                <span v-show="userAddress">
-                    <button>Other function</button>
-                </span>
-                <span v-show="userAddress">
-                    <input type="text" placeholder="Otherfunction" v-model="tokenId3">
-                </span>
-        </li></div>
-    </ul>
+    <ElContainer direction="vertical" class="h-[100vh]">
+        <el-menu
+            :default-active="activeIndex"
+            class="el-menu-demo"
+            mode="horizontal"
+            :ellipsis="false"
+        >
+            <el-menu-item index="0">
+                <strong> House Trading System </strong>
+            </el-menu-item>
+            <div class="flex-grow" />
+            <el-menu-item index="1" v-show="status=='unauthenticated'" @click="checkLogin">
+                <strong> Log In </strong>
+            </el-menu-item>
+            <el-menu-item index="2" v-show="status=='authenticated'" @click="Welcome">
+                <strong> Show address </strong>
+            </el-menu-item>
+            <el-menu-item index="3" v-show="status=='authenticated'" @click="all_house">
+                <strong> all_house </strong>
+            </el-menu-item>
+            <el-menu-item index="3" v-show="status=='authenticated'" @click="test">
+                <strong> house_owner </strong>
+            </el-menu-item>
+        </el-menu>
+    </ElContainer>
+    <ElContainer v-show="status=='authenticated'">
+        <el-table :data="houseInfo">
+            <el-table-column prop="tokenId" label="tokenId" width="100"/>
+            <el-table-column prop="owner" label="house_owner" width="300"/>
+            <el-table-column prop="price" label="price"/>
+            <el-table-column prop="sell" label="sell"/>
+            <el-table-column label="buy">
+                <ElButton type="primary" @click="buy_house">buy</ElButton>
+            </el-table-column>
+            <el-table-column label="contact">
+                <ElButton type="primary" @click="contact">buy</ElButton>
+            </el-table-column>
+        </el-table>
+    </ElContainer>
 </template>
 
-<style scoped>
-/* Your styles here */
-ul.button-list {
-
-    text-align: left;
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-}
-
-ul.button-list li {
-    display: inline-block;
-    margin-right: 10px;
-}
-
-button {
-    background-color: #4CAF50;
-    border: none;
-    color: white;
-    padding: 10px 20px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    margin: 4px 2px;
-    cursor: pointer;
-}
-</style>
-
-
-<script>
+<script setup>
 import { ethers } from 'ethers'
-// import Web3 from 'web3'
 import { contractABI, contractAddress } from './contract'
+import { ElButton, ElContainer, ElMessage } from 'element-plus';
+import { ref } from 'vue'
 
 console.log('ethers version:', ethers.version);
 
-export default {
-    name: 'App',
-    data() {
-        return {
-            userAddress: "",
-            ownerAddress: "",
-            tokenId1: "",
-            checked_tokenId1: "",
-            tokenId2: "",
-            checked_tokenId2: "",
-            tokenId3: "",
-            addressTo: "",
-            checked_addressTo: ""
-        }
-    },
-    methods: {
-        async checkLogin() {
-            const { ethereum } = window
-            if (!ethereum) {
-                alert("請安裝metamask錢包")
-                return
-            }
-            console.log("您已安裝metamask")
-            const [account] = await window.ethereum.request({ method: 'eth_requestAccounts' })
-            this.userAddress = account
-        },
-        Provider() {
-            return new ethers.providers.Web3Provider(window.ethereum)
-        },
-        Contract() {
-            const Provider = this.Provider()
-            const signer = Provider.getSigner()
-            const contract = new ethers.Contract(contractAddress, contractABI, signer)
-            return contract
-        },
-        async ownerOf() {
-            const contract = this.Contract()
-            const result = await contract.ownerOf(this.tokenId1)
-            this.ownerAddress = result
-            this.checked_tokenId1 = this.tokenId1
-        },
-        async mint() {
-            const contract = this.Contract()
-            await contract.mint(this.addressTo, this.tokenId2)
-            this.checked_tokenId2 = this.tokenId2
-            this.checked_addressTo = this.addressTo
-        }
-    },
-}
-</script>
+let status = ref("unauthenticated");
+let userAddress = ref();
+let houseInfo = ref();
 
+function Welcome() {
+    ElMessage({message:'Welcome, your address is ' + userAddress.value, type: 'success'});
+}
+
+async function checkLogin() {
+    console.log("checkLogin")
+    const { ethereum } = window;
+    if (!ethereum) {
+        alert("請安裝metamask錢包");
+        return;
+    }
+    console.log("您已安裝metamask");
+    const [account] = await window.ethereum.request({ method: "eth_requestAccounts" });
+    userAddress.value = account;
+    status.value = "authenticated";
+    Welcome();
+    all_house();
+}
+function Provider() {
+    return new ethers.providers.Web3Provider(window.ethereum);
+}
+function Contract() {
+    const provider = Provider();
+    const signer = provider.getSigner();
+    const contract = new ethers.Contract(contractAddress, contractABI, signer);
+    return contract;
+}
+
+async function all_house() {
+    const contract = Contract();
+    let all_house = await contract.all_house();
+    all_house = await Promise.all(all_house.map(async (element) => {
+        const tokenId = element.toString();
+        const owner = await house_owner(element);
+        const price = await search_price(element);
+        const sell = await search_sell(element);
+        
+        return {
+            tokenId,
+            owner,
+            price,
+            sell
+        };
+    }));
+    houseInfo.value = all_house;
+    console.log(houseInfo.value);
+}
+
+async function search_price(tokenId) {
+    const contract = Contract();
+    const price = await contract.search_price(tokenId);
+    return price;
+}
+
+async function search_sell(tokenId) {
+    const contract = Contract();
+    const sell = await contract.search_sell(tokenId);
+    return sell;
+}
+
+async function house_owner(tokenId) {
+    const contract = Contract();
+    const house_owner = await contract.house_owner(tokenId);
+    return house_owner;
+}
+
+</script>
 <style>
-#app {
-    font-family: Avenir, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-align: center;
-    color: #2c3e50;
-    margin-top: 60px;
+.flex-grow {
+  flex-grow: 1;
 }
 </style>
