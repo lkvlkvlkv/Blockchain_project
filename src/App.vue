@@ -1,9 +1,9 @@
 <template>
     <ElContainer direction="vertical" class="h-[100vh] space-y-10">
         <el-menu mode="horizontal" :ellipsis="false">
-            <el-menu-item index="0">
-                <strong> House Trading System </strong>
-            </el-menu-item>
+            <div class="flex items-center flex justify-center w-1/6">
+                <strong class="text-2xl"> 房屋買賣系統 </strong>
+            </div>
             <div class="flex-grow" />
             <el-menu-item index="1" v-show="status == 'unauthenticated'" @click="checkLogin">
                 <strong> Log In </strong>
@@ -28,7 +28,7 @@
                         <strong> My house </strong>
                     </el-menu-item>
                     <div class="flex-grow" />
-                    <div class="flex items-center flex justify-end w-1/6">
+                    <div class="flex items-center flex justify-end w-1/6" v-show="activeIndex == '1'">
                         <ElButton type="primary" @click="Add">Add</ElButton>
                     </div>
                 </el-menu>
@@ -52,11 +52,11 @@
                         <el-table-column prop="owner" label="house_owner" width="300" />
                         <el-table-column prop="price" label="price" />
                         <el-table-column prop="sell" label="sell" />
-                        <el-table-column label="buy">
+                        <el-table-column label="modify">
                             <ElButton type="primary" @click="modify">modify</ElButton>
                         </el-table-column>
-                        <el-table-column label="contact">
-                            <ElButton type="primary" @click="XDD">delete</ElButton>
+                        <el-table-column label="delete">
+                            <ElButton type="primary" @click="delete_">delete</ElButton>
                         </el-table-column>
                     </el-table>
                 </ElContainer>
