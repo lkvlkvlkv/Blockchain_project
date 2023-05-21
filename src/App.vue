@@ -1,49 +1,74 @@
 <template>
-    <ElContainer direction="vertical" class="h-[100vh]">
-        <el-menu
-            :default-active="activeIndex"
-            class="el-menu-demo"
-            mode="horizontal"
-            :ellipsis="false"
-        >
+    <ElContainer direction="vertical" class="h-[100vh] space-y-10">
+        <el-menu mode="horizontal" :ellipsis="false">
             <el-menu-item index="0">
                 <strong> House Trading System </strong>
             </el-menu-item>
             <div class="flex-grow" />
-            <el-menu-item index="1" v-show="status=='unauthenticated'" @click="checkLogin">
+            <el-menu-item index="1" v-show="status == 'unauthenticated'" @click="checkLogin">
                 <strong> Log In </strong>
             </el-menu-item>
-            <el-menu-item index="2" v-show="status=='authenticated'" @click="Welcome">
+            <el-menu-item index="2" v-show="status == 'authenticated'" @click="Welcome">
                 <strong> Show address </strong>
             </el-menu-item>
-            <el-menu-item index="3" v-show="status=='authenticated'" @click="all_house">
-                <strong> all_house </strong>
+            <el-menu-item index="5" v-show="status == 'authenticated'" @click="houseBalanceOf">
+                <strong> houseBalanceOf </strong>
             </el-menu-item>
-            <el-menu-item index="3" v-show="status=='authenticated'" @click="test">
-                <strong> house_owner </strong>
+            <el-menu-item index="6" v-show="status == 'authenticated'" @click="switch_page">
+                <strong> tested </strong>
             </el-menu-item>
         </el-menu>
-    </ElContainer>
-    <ElContainer v-show="status=='authenticated'">
-        <el-table :data="houseInfo">
-            <el-table-column prop="tokenId" label="tokenId" width="100"/>
-            <el-table-column prop="owner" label="house_owner" width="300"/>
-            <el-table-column prop="price" label="price"/>
-            <el-table-column prop="sell" label="sell"/>
-            <el-table-column label="buy">
-                <ElButton type="primary" @click="buy_house">buy</ElButton>
-            </el-table-column>
-            <el-table-column label="contact">
-                <ElButton type="primary" @click="contact">buy</ElButton>
-            </el-table-column>
-        </el-table>
+        <div class="flex justify-center" v-show="status == 'authenticated'">
+            <div class="w-4/5">
+                <el-menu @select="handleSelect" :default-active="activeIndex" mode="horizontal" :ellipsis="false">
+                    <el-menu-item index="0">
+                        <strong> All house </strong>
+                    </el-menu-item>
+                    <el-menu-item index="1">
+                        <strong> My house </strong>
+                    </el-menu-item>
+                    <div class="flex-grow" />
+                    <div class="flex items-center flex justify-end w-1/6">
+                        <ElButton type="primary" @click="Add">Add</ElButton>
+                    </div>
+                </el-menu>
+                <ElContainer v-show="activeIndex == '0'">
+                    <el-table :data="houseInfo">
+                        <el-table-column prop="tokenId" label="tokenId" width="100" />
+                        <el-table-column prop="owner" label="house_owner" width="300" />
+                        <el-table-column prop="price" label="price" />
+                        <el-table-column prop="sell" label="sell" />
+                        <el-table-column label="buy">
+                            <ElButton type="primary" @click="my_house" style="color:blue!">buy</ElButton>
+                        </el-table-column>
+                        <el-table-column label="contact">
+                            <ElButton type="primary" @click="contact">contact</ElButton>
+                        </el-table-column>
+                    </el-table>
+                </ElContainer>
+                <ElContainer v-show="activeIndex == '1'">
+                    <el-table :data="houseInfo">
+                        <el-table-column prop="tokenId" label="tokenId" width="100" />
+                        <el-table-column prop="owner" label="house_owner" width="300" />
+                        <el-table-column prop="price" label="price" />
+                        <el-table-column prop="sell" label="sell" />
+                        <el-table-column label="buy">
+                            <ElButton type="primary" @click="modify">modify</ElButton>
+                        </el-table-column>
+                        <el-table-column label="contact">
+                            <ElButton type="primary" @click="XDD">delete</ElButton>
+                        </el-table-column>
+                    </el-table>
+                </ElContainer>
+            </div>
+        </div>
     </ElContainer>
 </template>
 
 <script setup>
 import { ethers } from 'ethers'
 import { contractABI, contractAddress } from './contract'
-import { ElButton, ElContainer, ElMessage } from 'element-plus';
+import { ElContainer, ElMessage } from 'element-plus';
 import { ref } from 'vue'
 
 console.log('ethers version:', ethers.version);
@@ -51,9 +76,28 @@ console.log('ethers version:', ethers.version);
 let status = ref("unauthenticated");
 let userAddress = ref();
 let houseInfo = ref();
+let activeIndex = ref('0')
+
+async function handleSelect(index) {
+    switch (index) {
+        case "0":
+            all_house();
+            activeIndex.value = "0";
+            console.log("all_house")
+            break;
+
+        case "1":
+            my_house();
+            activeIndex.value = "1";
+            console.log("my_house")
+            break;
+        default:
+            break;
+    }
+}
 
 function Welcome() {
-    ElMessage({message:'Welcome, your address is ' + userAddress.value, type: 'success'});
+    ElMessage({ message: 'Welcome, your address is ' + userAddress.value, type: 'success' });
 }
 
 async function checkLogin() {
@@ -88,7 +132,7 @@ async function all_house() {
         const owner = await house_owner(element);
         const price = await search_price(element);
         const sell = await search_sell(element);
-        
+
         return {
             tokenId,
             owner,
@@ -97,7 +141,6 @@ async function all_house() {
         };
     }));
     houseInfo.value = all_house;
-    console.log(houseInfo.value);
 }
 
 async function search_price(tokenId) {
@@ -118,9 +161,34 @@ async function house_owner(tokenId) {
     return house_owner;
 }
 
+async function my_house() {
+    const contract = Contract();
+    let my_house = await contract.my_house();
+    my_house = await Promise.all(my_house.map(async (element) => {
+        const tokenId = element.toString();
+        const owner = await house_owner(element);
+        const price = await search_price(element);
+        const sell = await search_sell(element);
+
+        return {
+            tokenId,
+            owner,
+            price,
+            sell
+        };
+    }));
+    houseInfo.value = my_house;
+}
+
+async function houseBalanceOf() {
+    const contract = Contract();
+    const balance = await contract.houseBalanceOf(userAddress.value);
+    ElMessage({ message: '您擁有' + balance + '棟房子', type: 'success' });
+}
+
 </script>
 <style>
 .flex-grow {
-  flex-grow: 1;
+    flex-grow: 1;
 }
 </style>
