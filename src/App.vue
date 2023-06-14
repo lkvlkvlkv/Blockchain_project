@@ -38,14 +38,20 @@
                         <el-table-column prop="owner" label="house_owner" width="300" />
                         <el-table-column prop="price" label="price" />
                         <el-table-column prop="sell" label="sell" />
-                        <el-table-column label="buy">
-                            <ElButton type="primary" @click="my_house" style="color:blue!">buy</ElButton>
+                        <el-table-column prop="data" label="ipfs-image-link" />
+                        <el-table-column prop="tokenId" label="buy" >
+                            <ElButton type="primary" @click="buy_house" style="color:blue!">buy</ElButton>
                         </el-table-column>
                         <el-table-column label="contact">
                             <ElButton type="primary" @click="contact">contact</ElButton>
                         </el-table-column>
                     </el-table>
                 </ElContainer>
+                <div>
+                    <ul>
+                    <li v-for="item in jsonData" :key="item.id">{{ item.name }}</li>
+                    </ul>
+                </div>
                 <ElContainer v-show="activeIndex == '1'">
                     <el-table :data="houseInfo">
                         <el-table-column prop="tokenId" label="tokenId" width="100" />
@@ -70,13 +76,15 @@ import { ethers } from 'ethers'
 import { contractABI, contractAddress } from './contract'
 import { ElContainer, ElMessage } from 'element-plus';
 import { ref } from 'vue'
+// import axios from 'axios';
+
 
 console.log('ethers version:', ethers.version);
 
 let status = ref("unauthenticated");
 let userAddress = ref();
 let houseInfo = ref();
-let activeIndex = ref('0')
+let activeIndex = ref('0');
 
 async function handleSelect(index) {
     switch (index) {
@@ -127,20 +135,34 @@ function Contract() {
 async function all_house() {
     const contract = Contract();
     let all_house = await contract.all_house();
+    console.log(all_house)
     all_house = await Promise.all(all_house.map(async (element) => {
         const tokenId = element.toString();
         const owner = await house_owner(element);
         const price = await search_price(element);
         const sell = await search_sell(element);
-
+        const tokenURI = await contract.tokenURI(tokenId)
+        // const ipfs = await axios.get('https://gateway.pinata.cloud/ipfs/'+ tokenURI)
+        const axios = require('axios');
+        const ipfs = await axios.get('https://gateway.pinata.cloud/ipfs/'+ tokenURI)
+        const data = ipfs.data.image
+        console.log(ipfs.data)
         return {
             tokenId,
             owner,
             price,
-            sell
+            sell,
+            tokenURI,
+            data
         };
     }));
     houseInfo.value = all_house;
+}
+
+
+async function buy_house(tokenId){
+    console.log(tokenId)
+    return tokenId
 }
 
 async function search_price(tokenId) {
