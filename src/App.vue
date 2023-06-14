@@ -32,7 +32,6 @@
                     </el-menu-item>
                     <div class="flex-grow" />
                     <div class="flex items-center flex justify-end w-1/6" v-show="activeIndex == '1'">
-                        <ElButton type="primary" @click="Add">Add</ElButton>
                     </div>
                 </el-menu>
                 <ElContainer v-show="activeIndex == '0'">
@@ -76,10 +75,32 @@
                         </el-table-column>
                     </el-table>
                 </ElContainer>
-                <el-dialog v-model="dialogVisible" title="Which attribute do you want to change?">
+                <div class="fixed bottom-20 right-20 z-50">
+                    <ElButton type="primary" @click="dialogAddVisible = true" circle :icon="Plus" size="large"/>
+                </div>
+                <el-dialog v-model="dialogAddVisible" title="Add House">
+                    <el-form :model="form">
+                        <el-form-item label="TokenID" :label-width="formLabelWidth">
+                            <el-input v-model="addForm.token_id" autocomplete="off" />
+                        </el-form-item>
+                        <el-form-item label="Price" :label-width="formLabelWidth">
+                            <el-input v-model="addForm.price" autocomplete="off" />
+                        </el-form-item>
+                        <el-form-item label="URI" :label-width="formLabelWidth">
+                            <el-input v-model="addForm.URI" autocomplete="off" />
+                        </el-form-item>
+                    </el-form>
+                    <template #footer>
+                        <span class="dialog-footer">
+                            <el-button @click="dialogAddVisible = false">Cancel</el-button>
+                            <el-button type="primary" @click="Add_house()">Add</el-button>
+                        </span>
+                    </template>
+                </el-dialog>
+                <el-dialog v-model="dialogModifyVisible" title="Modify house">
                     <el-form :model="modifyForm" label-width="70px">
                         <el-form-item label="price">
-                            <el-input v-model="modifyForm.price" />
+                            <el-input v-model="modifyForm.price" autocomplete="off"/>
                         </el-form-item>
                         <el-form-item label="sell">
                             <el-select v-model="modifyForm.sell" placeholder="Select">
@@ -88,12 +109,12 @@
                             </el-select>
                         </el-form-item>
                         <el-form-item label="uri">
-                            <el-input v-model="modifyForm.URI" />
+                            <el-input v-model="modifyForm.URI" autocomplete="off"/>
                         </el-form-item>
                     </el-form>
                     <template #footer>
                         <span class="dialog-footer">
-                            <el-button @click="dialogVisible = false">Cancel</el-button>
+                            <el-button @click="dialogModifyVisible = false">Cancel</el-button>
                             <el-button type="primary" @click="confirmModify">
                                 Confirm
                             </el-button>
@@ -105,42 +126,88 @@
     </ElContainer>
 </template>
 
-<script setup>
+<script setup >
 import { ethers } from 'ethers'
 import { contractABI, contractAddress } from './contract'
 import { ElButton, ElContainer, ElMessage, ElMessageBox } from 'element-plus';
-import { Delete, Edit } from '@element-plus/icons-vue'
+import { Delete, Edit, Plus } from '@element-plus/icons-vue'
 import { ref, markRaw, reactive } from 'vue';
 // import axios from 'axios';
 
+
 console.log('ethers version:', ethers.version);
 
+const formLabelWidth = '140px'
 let status = ref("unauthenticated");
 let userAddress = ref();
 let houseInfo = ref();
 let activeIndex = ref('0');
-let dialogVisible = ref(0);
+let dialogModifyVisible = ref(0);
+let dialogAddVisible = ref(false)
 let modifyForm = reactive({
     tokenId: '',
     price: '',
     sell: '',
     URI: ''
 });
+let addForm = reactive({
+    address: "",
+    token_id: "",
+    price: "",
+})
+
+
+// const info = reactive({
+//     address: "",
+//     built_date: "",
+//     category: "",
+//     story: "",
+//     size: "",
+//     description: "",
+//     image : " "
+// })
+
+// avoid ResizeObserver error
+const debounce = (fn, delay) => {
+  let timer = null;
+  return function () {
+    let context = this;
+    let args = arguments;
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      fn.apply(context, args);
+    }, delay);
+  }
+}
+ 
+// avoid ResizeObserver error
+const _ResizeObserver = window.ResizeObserver;
+window.ResizeObserver = class ResizeObserver extends _ResizeObserver{
+  constructor(callback) {
+    callback = debounce(callback, 16);
+    super(callback);
+  }
+}
 
 async function confirmModify() {
     console.log("modify house");
     console.log(modifyForm);
     const contract = Contract();
-    await contract.set_sell(modifyForm.tokenId, modifyForm.sell);
+    try {
+        await contract.set_sell(modifyForm.tokenId, modifyForm.sell);
+    }
+    catch (e) {
+        console.log(e);
+    }
     await contract.set_house_price(modifyForm.tokenId, modifyForm.price);
     modifyForm.URI && await contract.setTokenURI(modifyForm.tokenId, modifyForm.URI);
-    dialogVisible.value = false;
+    dialogModifyVisible.value = false;
     console.log("modify house finish")
     my_house();
 }
 
 async function showModifyDialog(row) {
-    dialogVisible.value = true;
+    dialogModifyVisible.value = true;
     console.log(row.tokenId);
     const contract = Contract();
     Object.assign(modifyForm, {
@@ -174,21 +241,16 @@ async function _delete(tokenId) {
     })
 }
 
-// function modify(tokenId) {
-//     console.log('modify house ' + tokenId);
-
-// }
-
 async function refreshTable(index) {
     switch (index) {
         case "0":
-            all_house();
+            await all_house();
             activeIndex.value = "0";
             console.log("all_house")
             break;
 
         case "1":
-            my_house();
+            await my_house();
             activeIndex.value = "1";
             console.log("my_house")
             break;
@@ -260,7 +322,21 @@ async function all_house() {
     }));
     houseInfo.value = all_house;
 }
-
+// userAddress.value
+async function Add_house() {
+    const address = userAddress.value;
+    const contract = Contract();
+    try {
+        await contract.mint_house(address, addForm.token_id, addForm.price);
+        ElMessage({ message: '增加成功', type: 'success' });
+    }
+    catch (err) {
+        let message = err['data']['data']['reason'] || err['message'];
+        ElMessage({ message: message });
+    }
+    my_house();
+    dialogAddVisible.value = false;
+}
 
 async function buy_house(tokenId) {
     console.log(tokenId);
