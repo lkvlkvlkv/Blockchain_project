@@ -32,7 +32,63 @@
                     </el-menu-item>
                     <div class="flex-grow" />
                     <div class="flex items-center flex justify-end w-1/6" v-show="activeIndex == '1'">
-                        <ElButton type="primary" @click="Add">Add</ElButton>
+                        <!-- <ElButton type="primary" @click="Add_house">Add</ElButton> -->
+                        <ElButton type="primary" @click="dialogFormVisible = true">Add</ElButton>
+                        <el-dialog v-model="dialogFormVisible" title="House info">
+                            <el-form :model="form">
+                            <el-form-item label="TokenID" :label-width="formLabelWidth">
+                                <el-input v-model="add_house_info.token_id" autocomplete="off" />
+                            </el-form-item>
+                            <el-form-item label="Price" :label-width="formLabelWidth">
+                                <el-input v-model="add_house_info.price" autocomplete="off" />
+                            </el-form-item>
+                            </el-form>
+                            <template #footer>
+                            <span class="dialog-footer">
+                                <el-button @click="dialogFormVisible = false">Cancel</el-button>
+                                <el-button type="primary" @click="Add_house()">Add</el-button>
+                            </span>
+                            </template>
+                        </el-dialog>
+                        <!-- <ElButton type="primary" @click="dialogFormVisible = true">Add_mybad</ElButton>
+                        <el-dialog v-model="dialogFormVisible" title="House info">
+                            <el-form :model="form">
+                            <el-form-item label="Address" :label-width="formLabelWidth">
+                                <el-input v-model="info.address" autocomplete="off" />
+                            </el-form-item>
+                            <el-form-item label="Built date" :label-width="formLabelWidth">
+                                <el-input v-model="info.built_date" autocomplete="off" />
+                            </el-form-item>
+                            <el-form-item label="Category" :label-width="formLabelWidth">
+                                <el-select v-model="info.category" placeholder="Please select the category">
+                                <el-option label="House" value="House" />
+                                <el-option label="Villa" value="Villa" />
+                                <el-option label="Mansion" value="Mansion" />
+                                <el-option label="Apartment" value="Apartment" />
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="Story" :label-width="formLabelWidth">
+                                <el-input v-model="info.story" autocomplete="off" />
+                            </el-form-item>
+                            <el-form-item label="Size" :label-width="formLabelWidth">
+                                <el-input v-model="info.size" autocomplete="off" />
+                            </el-form-item>
+                            <el-form-item label="Description" :label-width="formLabelWidth">
+                                <el-input v-model="info.description" autocomplete="off" />
+                            </el-form-item>
+                            <el-form-item label="Image" :label-width="formLabelWidth">
+                                <el-input v-model="info.image" autocomplete="off" />
+                            </el-form-item>
+                            </el-form>
+                            <template #footer>
+                                <span class="dialog-footer">
+                                    <el-button @click="dialogFormVisible = false">Cancel</el-button>
+                                    <el-button type="primary" @click="dialogFormVisible = false">
+                                    Confirm
+                                    </el-button>
+                                </span>
+                            </template>
+                        </el-dialog> -->
                     </div>
                 </el-menu>
                 <ElContainer v-show="activeIndex == '0'">
@@ -81,16 +137,32 @@
     </ElContainer>
 </template>
 
-<script setup>
+<script setup >
 import { ethers } from 'ethers'
 import { contractABI, contractAddress } from './contract'
 import { ElButton, ElContainer, ElMessage, ElMessageBox } from 'element-plus';
 import { Delete, Edit } from '@element-plus/icons-vue'
-import { ref } from 'vue';
+import { reactive,ref } from 'vue';
 import { markRaw } from 'vue';
 // import axios from 'axios';
 
+const dialogFormVisible = ref(false)
 
+const formLabelWidth = '140px'
+const add_house_info = reactive({
+    address: "",
+    token_id: "",
+    price: "",
+})
+// const info = reactive({
+//     address: "",
+//     built_date: "",
+//     category: "",
+//     story: "",
+//     size: "",
+//     description: "",
+//     image : " "
+// })
 console.log('ethers version:', ethers.version);
 
 let status = ref("unauthenticated");
@@ -207,7 +279,19 @@ async function all_house() {
     }));
     houseInfo.value = all_house;
 }
-
+// userAddress.value
+async function Add_house() {
+    const address = userAddress.value;
+    const contract = Contract();
+    try {
+        await contract.mint_house(address,add_house_info.token_id,add_house_info.price);
+        ElMessage({ message: '增加成功' });
+    }
+    catch (err) {
+        let message = err['data']['data']['reason'] || err['message'];
+        ElMessage({ message: message });
+    }
+}
 
 async function buy_house(tokenId) {
     console.log(tokenId);
