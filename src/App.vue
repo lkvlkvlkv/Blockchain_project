@@ -66,7 +66,7 @@
                         <el-table-column prop="sell" label="sell" />
                         <el-table-column label="modify">
                             <template v-slot="{ row }">
-                                <ElButton type="primary" @click="modify(row.tokenId)" :icon="Edit" />
+                                <ElButton type="primary" @click="showModifyDialog(row)" :icon="Edit" />
                             </template>
                         </el-table-column>
                         <el-table-column label="delete">
@@ -76,6 +76,30 @@
                         </el-table-column>
                     </el-table>
                 </ElContainer>
+                <el-dialog v-model="dialogVisible" title="Which attribute do you want to change?">
+                    <el-form :model="modifyForm" label-width="70px">
+                        <el-form-item label="price">
+                            <el-input v-model="modifyForm.price" />
+                        </el-form-item>
+                        <el-form-item label="sell">
+                            <el-select v-model="modifyForm.sell" placeholder="Select">
+                                <el-option v-for="item in [{ key: 'true', value: true }, { key: 'false', value: false }]"
+                                    :key="item.value" :value="item.value" />
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="uri">
+                            <el-input v-model="modifyForm.URI" />
+                        </el-form-item>
+                    </el-form>
+                    <template #footer>
+                        <span class="dialog-footer">
+                            <el-button @click="dialogVisible = false">Cancel</el-button>
+                            <el-button type="primary" @click="confirmModify">
+                                Confirm
+                            </el-button>
+                        </span>
+                    </template>
+                </el-dialog>
             </div>
         </div>
     </ElContainer>
@@ -86,10 +110,8 @@ import { ethers } from 'ethers'
 import { contractABI, contractAddress } from './contract'
 import { ElButton, ElContainer, ElMessage, ElMessageBox } from 'element-plus';
 import { Delete, Edit } from '@element-plus/icons-vue'
-import { ref } from 'vue';
-import { markRaw } from 'vue';
+import { ref, markRaw, reactive } from 'vue';
 // import axios from 'axios';
-
 
 console.log('ethers version:', ethers.version);
 
@@ -97,6 +119,39 @@ let status = ref("unauthenticated");
 let userAddress = ref();
 let houseInfo = ref();
 let activeIndex = ref('0');
+let dialogVisible = ref(0);
+let modifyForm = reactive({
+    tokenId: '',
+    price: '',
+    sell: '',
+    URI: ''
+});
+
+async function confirmModify() {
+    console.log("modify house");
+    console.log(modifyForm);
+    const contract = Contract();
+    await contract.set_sell(modifyForm.tokenId, modifyForm.sell);
+    await contract.set_house_price(modifyForm.tokenId, modifyForm.price);
+    modifyForm.URI && await contract.setTokenURI(modifyForm.tokenId, modifyForm.URI);
+    dialogVisible.value = false;
+    console.log("modify house finish")
+    my_house();
+}
+
+async function showModifyDialog(row) {
+    dialogVisible.value = true;
+    console.log(row.tokenId);
+    const contract = Contract();
+    Object.assign(modifyForm, {
+        tokenId: row.tokenId,
+        price: row.price,
+        sell: row.sell,
+        URI: await contract.tokenURI(row.tokenId)
+    })
+
+    console.log(modifyForm)
+}
 
 async function _delete(tokenId) {
     ElMessageBox.confirm(
@@ -107,9 +162,7 @@ async function _delete(tokenId) {
             icon: markRaw(Delete),
         }
     ).then(async function () {
-        const provider = Provider();
-        const signer = provider.getSigner();
-        const contract = new ethers.Contract(contractAddress, contractABI, signer);
+        const contract = Contract();
         const tx = await contract.burn_house(tokenId);
         await tx.wait();
         my_house();
@@ -121,10 +174,10 @@ async function _delete(tokenId) {
     })
 }
 
-function modify(tokenId) {
-    console.log('modify house ' + tokenId);
+// function modify(tokenId) {
+//     console.log('modify house ' + tokenId);
 
-}
+// }
 
 async function refreshTable(index) {
     switch (index) {
