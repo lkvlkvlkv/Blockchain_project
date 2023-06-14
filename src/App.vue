@@ -75,8 +75,8 @@
                         </el-table-column>
                     </el-table>
                 </ElContainer>
-                <div class="fixed bottom-20 right-20 z-50">
-                    <ElButton type="primary" @click="dialogAddVisible = true" circle :icon="Plus" size="large"/>
+                <div class="fixed bottom-20 right-20 z-50" v-show="activeIndex == '1'">
+                    <ElButton type="primary" @click="dialogAddVisible = true" circle :icon="Plus" size="large" />
                 </div>
                 <el-dialog v-model="dialogAddVisible" title="Add House">
                     <el-form :model="form">
@@ -100,7 +100,7 @@
                 <el-dialog v-model="dialogModifyVisible" title="Modify house">
                     <el-form :model="modifyForm" label-width="70px">
                         <el-form-item label="price">
-                            <el-input v-model="modifyForm.price" autocomplete="off"/>
+                            <el-input v-model="modifyForm.price" autocomplete="off" />
                         </el-form-item>
                         <el-form-item label="sell">
                             <el-select v-model="modifyForm.sell" placeholder="Select">
@@ -109,7 +109,7 @@
                             </el-select>
                         </el-form-item>
                         <el-form-item label="uri">
-                            <el-input v-model="modifyForm.URI" autocomplete="off"/>
+                            <el-input v-model="modifyForm.URI" autocomplete="off" />
                         </el-form-item>
                     </el-form>
                     <template #footer>
@@ -127,7 +127,6 @@
 </template>
 
 <script setup >
-<script setup >
 import { ethers } from 'ethers'
 import { contractABI, contractAddress } from './contract'
 import { ElButton, ElContainer, ElMessage, ElMessageBox } from 'element-plus';
@@ -135,14 +134,6 @@ import { Delete, Edit, Plus } from '@element-plus/icons-vue'
 import { ref, markRaw, reactive } from 'vue';
 // import axios from 'axios';
 
-const dialogFormVisible = ref(false)
-
-const formLabelWidth = '140px'
-const add_house_info = reactive({
-    address: "",
-    token_id: "",
-    price: "",
-})
 // const info = reactive({
 //     address: "",
 //     built_date: "",
@@ -186,24 +177,24 @@ let addForm = reactive({
 
 // avoid ResizeObserver error
 const debounce = (fn, delay) => {
-  let timer = null;
-  return function () {
-    let context = this;
-    let args = arguments;
-    clearTimeout(timer);
-    timer = setTimeout(function () {
-      fn.apply(context, args);
-    }, delay);
-  }
+    let timer = null;
+    return function () {
+        let context = this;
+        let args = arguments;
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            fn.apply(context, args);
+        }, delay);
+    }
 }
- 
+
 // avoid ResizeObserver error
 const _ResizeObserver = window.ResizeObserver;
-window.ResizeObserver = class ResizeObserver extends _ResizeObserver{
-  constructor(callback) {
-    callback = debounce(callback, 16);
-    super(callback);
-  }
+window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
+    constructor(callback) {
+        callback = debounce(callback, 16);
+        super(callback);
+    }
 }
 
 async function confirmModify() {
