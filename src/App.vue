@@ -127,6 +127,7 @@
 </template>
 
 <script setup >
+<script setup >
 import { ethers } from 'ethers'
 import { contractABI, contractAddress } from './contract'
 import { ElButton, ElContainer, ElMessage, ElMessageBox } from 'element-plus';
@@ -134,7 +135,23 @@ import { Delete, Edit, Plus } from '@element-plus/icons-vue'
 import { ref, markRaw, reactive } from 'vue';
 // import axios from 'axios';
 
+const dialogFormVisible = ref(false)
 
+const formLabelWidth = '140px'
+const add_house_info = reactive({
+    address: "",
+    token_id: "",
+    price: "",
+})
+// const info = reactive({
+//     address: "",
+//     built_date: "",
+//     category: "",
+//     story: "",
+//     size: "",
+//     description: "",
+//     image : " "
+// })
 console.log('ethers version:', ethers.version);
 
 const formLabelWidth = '140px'
