@@ -14,13 +14,16 @@
             <el-menu-item index="5" v-show="status == 'authenticated'" @click="houseBalanceOf">
                 <strong> houseBalanceOf </strong>
             </el-menu-item>
-            <el-menu-item index="6" v-show="status == 'authenticated'" @click="switch_page">
-                <strong> tested </strong>
+            <el-menu-item index="6" v-show="status == 'authenticated'" @click="checkContractExist">
+                <strong> checkContract </strong>
+            </el-menu-item>
+            <el-menu-item index="7" v-show="status == 'authenticated'" @click="testButton">
+                <strong> testButton </strong>
             </el-menu-item>
         </el-menu>
         <div class="flex justify-center" v-show="status == 'authenticated'">
             <div class="w-4/5">
-                <el-menu @select="handleSelect" :default-active="activeIndex" mode="horizontal" :ellipsis="false">
+                <el-menu @select="refreshTable" :default-active="activeIndex" mode="horizontal" :ellipsis="false">
                     <el-menu-item index="0">
                         <strong> All house </strong>
                     </el-menu-item>
@@ -39,17 +42,20 @@
                         <el-table-column prop="price" label="price" />
                         <el-table-column prop="sell" label="sell" />
                         <el-table-column prop="data" label="ipfs-image-link" />
-                        <el-table-column prop="tokenId" label="buy" >
-                            <ElButton type="primary" @click="buy_house" style="color:blue!">buy</ElButton>
+                        <el-table-column label="buy">
+                            <template v-slot="{ row }">
+                                <ElButton :disabled="!row.sell && owner != userAddress" type="primary"
+                                    @click="buy_house(row.tokenId)">buy</ElButton>
+                            </template>
                         </el-table-column>
-                        <el-table-column label="contact">
-                            <ElButton type="primary" @click="contact">contact</ElButton>
+                        <el-table-column label="detailed">
+                            <ElButton type="primary" @click="detailed">detailed</ElButton>
                         </el-table-column>
                     </el-table>
                 </ElContainer>
                 <div>
                     <ul>
-                    <li v-for="item in jsonData" :key="item.id">{{ item.name }}</li>
+                        <li v-for="item in jsonData" :key="item.id">{{ item.name }}</li>
                     </ul>
                 </div>
                 <ElContainer v-show="activeIndex == '1'">
@@ -59,10 +65,14 @@
                         <el-table-column prop="price" label="price" />
                         <el-table-column prop="sell" label="sell" />
                         <el-table-column label="modify">
-                            <ElButton type="primary" @click="modify">modify</ElButton>
+                            <template v-slot="{ row }">
+                                <ElButton type="primary" @click="modify(row.tokenId)" :icon="Edit" />
+                            </template>
                         </el-table-column>
                         <el-table-column label="delete">
-                            <ElButton type="primary" @click="delete_">delete</ElButton>
+                            <template v-slot="{ row }">
+                                <ElButton type="primary" @click="_delete(row.tokenId)" :icon="Delete" />
+                            </template>
                         </el-table-column>
                     </el-table>
                 </ElContainer>
@@ -74,8 +84,10 @@
 <script setup>
 import { ethers } from 'ethers'
 import { contractABI, contractAddress } from './contract'
-import { ElContainer, ElMessage } from 'element-plus';
-import { ref } from 'vue'
+import { ElButton, ElContainer, ElMessage, ElMessageBox } from 'element-plus';
+import { Delete, Edit } from '@element-plus/icons-vue'
+import { ref } from 'vue';
+import { markRaw } from 'vue';
 // import axios from 'axios';
 
 
@@ -86,7 +98,35 @@ let userAddress = ref();
 let houseInfo = ref();
 let activeIndex = ref('0');
 
-async function handleSelect(index) {
+async function _delete(tokenId) {
+    ElMessageBox.confirm(
+        'It will permanently delete the house. Continue?',
+        'Warning',
+        {
+            type: 'warning',
+            icon: markRaw(Delete),
+        }
+    ).then(async function () {
+        const provider = Provider();
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, contractABI, signer);
+        const tx = await contract.burn_house(tokenId);
+        await tx.wait();
+        my_house();
+        console.log("delete house " + tokenId);
+        ElMessage({ message: 'Delete house ' + tokenId, type: 'success' });
+    }).catch(() => {
+        console.log('Cancel delete');
+        ElMessage({ message: 'Cancel delete', type: 'info' });
+    })
+}
+
+function modify(tokenId) {
+    console.log('modify house ' + tokenId);
+
+}
+
+async function refreshTable(index) {
     switch (index) {
         case "0":
             all_house();
@@ -135,16 +175,25 @@ function Contract() {
 async function all_house() {
     const contract = Contract();
     let all_house = await contract.all_house();
-    console.log(all_house)
     all_house = await Promise.all(all_house.map(async (element) => {
         const tokenId = element.toString();
         const owner = await house_owner(element);
         const price = await search_price(element);
         const sell = await search_sell(element);
         const tokenURI = await contract.tokenURI(tokenId)
+        if (tokenURI == "") {
+            return {
+                tokenId,
+                owner,
+                price,
+                sell,
+                tokenURI,
+                data: "Have no image."
+            };
+        }
         // const ipfs = await axios.get('https://gateway.pinata.cloud/ipfs/'+ tokenURI)
         const axios = require('axios');
-        const ipfs = await axios.get('https://gateway.pinata.cloud/ipfs/'+ tokenURI)
+        const ipfs = await axios.get('https://gateway.pinata.cloud/ipfs/' + tokenURI)
         const data = ipfs.data.image
         console.log(ipfs.data)
         return {
@@ -160,9 +209,18 @@ async function all_house() {
 }
 
 
-async function buy_house(tokenId){
-    console.log(tokenId)
-    return tokenId
+async function buy_house(tokenId) {
+    console.log(tokenId);
+    const contract = Contract();
+    try {
+        await contract.buy_house(tokenId);
+        ElMessage({ message: '購買成功' });
+        refreshTable(activeIndex.value);
+    }
+    catch (err) {
+        let message = err['data']['data']['reason'] || err['message'];
+        ElMessage({ message: message });
+    }
 }
 
 async function search_price(tokenId) {
@@ -206,6 +264,24 @@ async function houseBalanceOf() {
     const contract = Contract();
     const balance = await contract.houseBalanceOf(userAddress.value);
     ElMessage({ message: '您擁有' + balance + '棟房子', type: 'success' });
+}
+
+async function checkContractExist() {
+    const provider = Provider();
+    provider.getCode('0x3DED0e7f88a8C5a7afA2af440B79d0C4E6c9052B').then((code) => {
+        if (code === '0x') {
+            console.log('Contract does not exist in the blockchain');
+        } else {
+            console.log('Contract exists in the blockchain');
+        }
+    });
+}
+
+async function testButton() {
+    const contract = Contract();
+    let balance = await contract.moneyBalanceOf('0x5b2a467EDBC5b71fc73E3925863AaD3dAA965A19');
+    console.log(balance);
+    console.log("finish");
 }
 
 </script>
