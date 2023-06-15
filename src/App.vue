@@ -72,44 +72,52 @@
                         <el-table-column label="Info">
                             <template v-slot="{ row }">
                                 <!-- :disable="!(row.tokenURI || row.tokenURI == '')" -->
-                                <ElButton type="primary" @click="house_detailed(row.tokenId), dialogHouseDetail = True">Info
+                                <ElButton type="primary" @click="get_house_detailed(row.tokenId), dialogHouseDetail = True">
+                                    Info
                                 </ElButton>
                             </template>
                         </el-table-column>
 
                     </el-table>
-                    <el-dialog v-model="dialogHouseDetail" title="House detail">
+                    <el-dialog v-model="dialogHouseDetail" title="House detail" :width="1200">
                         <slot name="-">
-                            <el-form :model="form">
-                                <el-form-item label="Address : " :label-width="formLabelWidth">
-                                    {{ house_detail.address }}
-                                </el-form-item>
-                            </el-form>
-                            <el-form :model="form">
-                                <el-form-item label="Built date : " :label-width="formLabelWidth">
-                                    {{ house_detail.built_date }}
-                                </el-form-item>
-                            </el-form>
-                            <el-form :model="form">
-                                <el-form-item label="Category : " :label-width="formLabelWidth">
-                                    {{ house_detail.category }}
-                                </el-form-item>
-                            </el-form>
-                            <el-form :model="form">
-                                <el-form-item label="Story : " :label-width="formLabelWidth">
-                                    {{ house_detail.story }}
-                                </el-form-item>
-                            </el-form>
-                            <el-form :model="form">
-                                <el-form-item label="Size : " :label-width="formLabelWidth">
-                                    {{ house_detail.size }}
-                                </el-form-item>
-                            </el-form>
-                            <el-form :model="form">
-                                <el-form-item label="Description : " :label-width="formLabelWidth">
-                                    {{ house_detail.description }}
-                                </el-form-item>
-                            </el-form>
+                            <el-row>
+                                <el-col :span="12">
+                                    <el-image :src="house_detail.image" fit="contain" alt="Image"></el-image>
+                                </el-col>
+                                <el-col :span="12">
+                                    <el-form :model="form">
+                                        <el-form-item label="Address : " :label-width="formLabelWidth">
+                                            {{ house_detail.address }}
+                                        </el-form-item>
+                                    </el-form>
+                                    <el-form :model="form">
+                                        <el-form-item label="Built date : " :label-width="formLabelWidth">
+                                            {{ house_detail.built_date }}
+                                        </el-form-item>
+                                    </el-form>
+                                    <el-form :model="form">
+                                        <el-form-item label="Category : " :label-width="formLabelWidth">
+                                            {{ house_detail.category }}
+                                        </el-form-item>
+                                    </el-form>
+                                    <el-form :model="form">
+                                        <el-form-item label="Story : " :label-width="formLabelWidth">
+                                            {{ house_detail.story }}
+                                        </el-form-item>
+                                    </el-form>
+                                    <el-form :model="form">
+                                        <el-form-item label="Size : " :label-width="formLabelWidth">
+                                            {{ house_detail.size }}
+                                        </el-form-item>
+                                    </el-form>
+                                    <el-form :model="form">
+                                        <el-form-item label="Description : " :label-width="formLabelWidth">
+                                            {{ house_detail.description }}
+                                        </el-form-item>
+                                    </el-form>
+                                </el-col>
+                            </el-row>
                         </slot>
                         <template #footer>
                             <span class="dialog-footer">
@@ -295,6 +303,7 @@ async function confirmModify() {
     await contract.set_house_price(modifyForm.tokenId, modifyForm.price);
     modifyForm.URI && await contract.setTokenURI(modifyForm.tokenId, modifyForm.URI);
     dialogModifyVisible.value = false;
+    ElMessage({ message: 'Modify house ' + modifyForm.tokenId + ' success! ', type: 'success' });
     console.log("modify house finish")
     my_house();
 }
@@ -400,14 +409,16 @@ async function all_house() {
     houseInfo.value = all_house;
 }
 
-async function house_detailed(tokenID) {
+async function get_house_detailed(tokenID) {
     const contract = Contract();
     const axios = require('axios');
     const tokenURI = await contract.tokenURI(tokenID);
+    console.log('tokenID: ' + tokenID);
+    console.log('tokenURI: ' + tokenURI);
     try {
         const ipfs = await axios.get('https://ipfs.io/ipfs/' + tokenURI)
-
-        house_detail = ipfs.data;
+        Object.assign(house_detail, ipfs.data);
+        console.log(house_detail)
         dialogHouseDetail.value = true;
     }
     catch (err) {
