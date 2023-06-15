@@ -391,11 +391,7 @@ async function all_house() {
                 data: "Have no image."
             };
         }
-        // const ipfs = await axios.get('https://gateway.pinata.cloud/ipfs/'+ tokenURI)
-        // const axios = require('axios');
-        // const ipfs = await axios.get('https://gateway.pinata.cloud/ipfs/' + tokenURI)
-        // const data = ipfs.data.image
-        // console.log(ipfs.data)
+
         return {
             tokenId,
             owner,
@@ -412,15 +408,11 @@ async function house_detailed(tokenID){
     const contract = Contract();
     const axios = require('axios');
     const tokenURI = await contract.tokenURI(tokenID);
-    // console.log(tokenURI)
     const ipfs = await axios.get('https://ipfs.io/ipfs/' + tokenURI)
     
     house_detail = ipfs.data;
-    console.log(house_detail)
     dialogHouseDetail.value = true;
-    // return house_detail;
 }
-// userAddress.value
 async function Add_house() {
     const address = userAddress.value;
     const contract = Contract();
