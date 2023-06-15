@@ -36,19 +36,59 @@
                 </el-menu>
                 <ElContainer v-show="activeIndex == '0'">
                     <el-table :data="houseInfo">
-                        <el-table-column prop="tokenId" label="tokenId" width="100" />
-                        <el-table-column prop="owner" label="house_owner" width="300" />
-                        <el-table-column prop="price" label="price" />
-                        <el-table-column prop="sell" label="sell" />
-                        <el-table-column prop="data" label="ipfs-image-link" />
-                        <el-table-column label="buy">
+                        <el-table-column prop="tokenId" label="TokenId" width="100" />
+                        <el-table-column prop="owner" label="House owner" width="300" />
+                        <el-table-column prop="price" label="Price" />
+                        <el-table-column prop="sell" label="On sale" />
+                        <el-table-column label="Buy">
                             <template v-slot="{ row }">
                                 <ElButton :disabled="!row.sell && owner != userAddress" type="primary"
-                                    @click="buy_house(row.tokenId)">buy</ElButton>
+                                    @click="buy_house(row.tokenId)">Buy</ElButton>
                             </template>
                         </el-table-column>
-                        <el-table-column label="detailed">
-                            <ElButton type="primary" @click="detailed">detailed</ElButton>
+                        <el-table-column label="Info">
+                            <template v-slot="{ row }">
+                            <ElButton type="primary" @click="house_detailed(row.tokenId),dialogHouseDetail = true">Info</ElButton>
+                            <el-dialog v-model="dialogHouseDetail" title="House detail">
+                                <slot name="-">
+                                    <el-form :model="form">
+                                        <el-form-item label="Address : " :label-width="formLabelWidth">
+                                            {{ house_detail.address }}
+                                        </el-form-item>
+                                    </el-form>
+                                    <el-form :model="form">
+                                        <el-form-item label="Built date : " :label-width="formLabelWidth">
+                                            {{ house_detail.built_date }}
+                                        </el-form-item>
+                                    </el-form>
+                                    <el-form :model="form">
+                                        <el-form-item label="Category : " :label-width="formLabelWidth">
+                                            {{ house_detail.category }}
+                                        </el-form-item>
+                                    </el-form>
+                                    <el-form :model="form">
+                                        <el-form-item label="Story : " :label-width="formLabelWidth">
+                                            {{ house_detail.story }}
+                                        </el-form-item>
+                                    </el-form>
+                                    <el-form :model="form">
+                                        <el-form-item label="Size : " :label-width="formLabelWidth">
+                                            {{ house_detail.size }}
+                                        </el-form-item>
+                                    </el-form>
+                                    <el-form :model="form">
+                                        <el-form-item label="Description : " :label-width="formLabelWidth">
+                                            {{ house_detail.description }}
+                                        </el-form-item>
+                                    </el-form>
+                                </slot>
+                                <template #footer>
+                                    <span class="dialog-footer">
+                                        <el-button @click="dialogHouseDetail = false">Close</el-button>
+                                    </span>
+                                </template>
+                            </el-dialog>
+                        </template>
                         </el-table-column>
                     </el-table>
                 </ElContainer>
@@ -59,16 +99,16 @@
                 </div>
                 <ElContainer v-show="activeIndex == '1'">
                     <el-table :data="houseInfo">
-                        <el-table-column prop="tokenId" label="tokenId" width="100" />
-                        <el-table-column prop="owner" label="house_owner" width="300" />
-                        <el-table-column prop="price" label="price" />
-                        <el-table-column prop="sell" label="sell" />
-                        <el-table-column label="modify">
+                        <el-table-column prop="tokenId" label="TokenId" width="100" />
+                        <el-table-column prop="owner" label="House owner" width="300" />
+                        <el-table-column prop="price" label="Price" />
+                        <el-table-column prop="sell" label="On sale" />
+                        <el-table-column label="Modify">
                             <template v-slot="{ row }">
                                 <ElButton type="primary" @click="showModifyDialog(row)" :icon="Edit" />
                             </template>
                         </el-table-column>
-                        <el-table-column label="delete">
+                        <el-table-column label="Delete">
                             <template v-slot="{ row }">
                                 <ElButton type="primary" @click="_delete(row.tokenId)" :icon="Delete" />
                             </template>
@@ -132,6 +172,7 @@ import { contractABI, contractAddress } from './contract'
 import { ElButton, ElContainer, ElMessage, ElMessageBox } from 'element-plus';
 import { Delete, Edit, Plus } from '@element-plus/icons-vue'
 import { ref, markRaw, reactive } from 'vue';
+// import console from 'console';
 // import axios from 'axios';
 
 // const info = reactive({
@@ -152,6 +193,7 @@ let houseInfo = ref();
 let activeIndex = ref('0');
 let dialogModifyVisible = ref(0);
 let dialogAddVisible = ref(false)
+let dialogHouseDetail = ref(false)
 let modifyForm = reactive({
     tokenId: '',
     price: '',
@@ -162,18 +204,19 @@ let addForm = reactive({
     address: "",
     token_id: "",
     price: "",
+    URI:""
 })
 
 
-// const info = reactive({
-//     address: "",
-//     built_date: "",
-//     category: "",
-//     story: "",
-//     size: "",
-//     description: "",
-//     image : " "
-// })
+let house_detail = reactive({
+    address: "",
+    built_date: "",
+    category: "",
+    story: "",
+    size: "",
+    description: "",
+    image : " "
+})
 
 // avoid ResizeObserver error
 const debounce = (fn, delay) => {
@@ -187,6 +230,9 @@ const debounce = (fn, delay) => {
         }, delay);
     }
 }
+
+
+
 
 // avoid ResizeObserver error
 const _ResizeObserver = window.ResizeObserver;
@@ -315,20 +361,32 @@ async function all_house() {
             };
         }
         // const ipfs = await axios.get('https://gateway.pinata.cloud/ipfs/'+ tokenURI)
-        const axios = require('axios');
-        const ipfs = await axios.get('https://gateway.pinata.cloud/ipfs/' + tokenURI)
-        const data = ipfs.data.image
-        console.log(ipfs.data)
+        // const axios = require('axios');
+        // const ipfs = await axios.get('https://gateway.pinata.cloud/ipfs/' + tokenURI)
+        // const data = ipfs.data.image
+        // console.log(ipfs.data)
         return {
             tokenId,
             owner,
             price,
             sell,
-            tokenURI,
-            data
+            tokenURI
+            // data
         };
     }));
     houseInfo.value = all_house;
+}
+
+async function house_detailed(tokenID){
+    const contract = Contract();
+    const axios = require('axios');
+    const tokenURI = await contract.tokenURI(tokenID);
+    // console.log(tokenURI)
+    const ipfs = await axios.get('https://gateway.pinata.cloud/ipfs/' + tokenURI)
+    
+    house_detail = ipfs.data;
+    console.log(house_detail)
+    // return house_detail;
 }
 // userAddress.value
 async function Add_house() {
@@ -336,6 +394,7 @@ async function Add_house() {
     const contract = Contract();
     try {
         await contract.mint_house(address, addForm.token_id, addForm.price);
+        await contract.setTokenURI(addForm.token_id,addForm.URI);
         ElMessage({ message: '增加成功', type: 'success' });
     }
     catch (err) {
