@@ -11,6 +11,28 @@
             <el-menu-item index="2" v-show="status == 'authenticated'" @click="Welcome">
                 <strong> Show address </strong>
             </el-menu-item>
+            <el-menu-item index="3" v-show="status == 'authenticated'" @click="moneyBalanceOf">
+                <strong> moneyBalanceOf </strong>
+            </el-menu-item>
+            <el-menu-item index="4" v-show="status == 'authenticated'" @click="diamoneyTransfer = true">
+                <strong @click="diamoneyTransfer = true">moneyTransfer</strong>
+                <el-dialog v-model="diamoneyTransfer" title="Money Transfer">
+                    <el-form :model="form">
+                        <el-form-item label="toAddress" :label-width="formLabelWidth">
+                            <el-input v-model="transfermoney.toAddress" autocomplete="off" />
+                        </el-form-item>
+                        <el-form-item label="Amount" :label-width="formLabelWidth">
+                            <el-input v-model="transfermoney.amount" autocomplete="off" />
+                        </el-form-item>
+                    </el-form>
+                    <template #footer>
+                        <span class="dialog-footer">
+                            <el-button @click="diamoneyTransfer = false">Cancel</el-button>
+                            <el-button type="primary" @click="moneyTransfer(transfermoney)">Transfer</el-button>
+                        </span>
+                    </template>
+                </el-dialog>
+            </el-menu-item>
             <el-menu-item index="5" v-show="status == 'authenticated'" @click="houseBalanceOf">
                 <strong> houseBalanceOf </strong>
             </el-menu-item>
@@ -42,55 +64,58 @@
                         <el-table-column prop="sell" label="On sale" />
                         <el-table-column label="Buy">
                             <template v-slot="{ row }">
-                                <ElButton :disabled="!row.sell && owner != userAddress" type="primary"
+                                <!-- !row.sell && owner != userAddress -->
+                                <ElButton :disabled="!row.sell || !(row.owner - userAddress)" type="primary"
                                     @click="buy_house(row.tokenId)">Buy</ElButton>
                             </template>
                         </el-table-column>
                         <el-table-column label="Info">
                             <template v-slot="{ row }">
-                            <ElButton type="primary" @click="house_detailed(row.tokenId),dialogHouseDetail = true">Info</ElButton>
-                            <el-dialog v-model="dialogHouseDetail" title="House detail">
-                                <slot name="-">
-                                    <el-form :model="form">
-                                        <el-form-item label="Address : " :label-width="formLabelWidth">
-                                            {{ house_detail.address }}
-                                        </el-form-item>
-                                    </el-form>
-                                    <el-form :model="form">
-                                        <el-form-item label="Built date : " :label-width="formLabelWidth">
-                                            {{ house_detail.built_date }}
-                                        </el-form-item>
-                                    </el-form>
-                                    <el-form :model="form">
-                                        <el-form-item label="Category : " :label-width="formLabelWidth">
-                                            {{ house_detail.category }}
-                                        </el-form-item>
-                                    </el-form>
-                                    <el-form :model="form">
-                                        <el-form-item label="Story : " :label-width="formLabelWidth">
-                                            {{ house_detail.story }}
-                                        </el-form-item>
-                                    </el-form>
-                                    <el-form :model="form">
-                                        <el-form-item label="Size : " :label-width="formLabelWidth">
-                                            {{ house_detail.size }}
-                                        </el-form-item>
-                                    </el-form>
-                                    <el-form :model="form">
-                                        <el-form-item label="Description : " :label-width="formLabelWidth">
-                                            {{ house_detail.description }}
-                                        </el-form-item>
-                                    </el-form>
-                                </slot>
-                                <template #footer>
-                                    <span class="dialog-footer">
-                                        <el-button @click="dialogHouseDetail = false">Close</el-button>
-                                    </span>
-                                </template>
-                            </el-dialog>
+                            <ElButton type="primary" @click="house_detailed(row.tokenId)">Info</ElButton>
+                            
                         </template>
                         </el-table-column>
+
                     </el-table>
+                    <el-dialog v-model="dialogHouseDetail" title="House detail">
+                        <slot name="-">
+                            <el-form :model="form">
+                                <el-form-item label="Address : " :label-width="formLabelWidth">
+                                    {{ house_detail.address }}
+                                </el-form-item>
+                            </el-form>
+                            <el-form :model="form">
+                                <el-form-item label="Built date : " :label-width="formLabelWidth">
+                                    {{ house_detail.built_date }}
+                                </el-form-item>
+                            </el-form>
+                            <el-form :model="form">
+                                <el-form-item label="Category : " :label-width="formLabelWidth">
+                                    {{ house_detail.category }}
+                                </el-form-item>
+                            </el-form>
+                            <el-form :model="form">
+                                <el-form-item label="Story : " :label-width="formLabelWidth">
+                                    {{ house_detail.story }}
+                                </el-form-item>
+                            </el-form>
+                            <el-form :model="form">
+                                <el-form-item label="Size : " :label-width="formLabelWidth">
+                                    {{ house_detail.size }}
+                                </el-form-item>
+                            </el-form>
+                            <el-form :model="form">
+                                <el-form-item label="Description : " :label-width="formLabelWidth">
+                                    {{ house_detail.description }}
+                                </el-form-item>
+                            </el-form>
+                        </slot>
+                        <template #footer>
+                            <span class="dialog-footer">
+                                <el-button @click="dialogHouseDetail = false">Close</el-button>
+                            </span>
+                        </template>
+                    </el-dialog>
                 </ElContainer>
                 <div>
                     <ul>
@@ -194,12 +219,14 @@ let activeIndex = ref('0');
 let dialogModifyVisible = ref(0);
 let dialogAddVisible = ref(false)
 let dialogHouseDetail = ref(false)
+let diamoneyTransfer = ref(false)
 let modifyForm = reactive({
     tokenId: '',
     price: '',
     sell: '',
     URI: ''
-});
+})
+
 let addForm = reactive({
     address: "",
     token_id: "",
@@ -207,6 +234,10 @@ let addForm = reactive({
     URI:""
 })
 
+let transfermoney = reactive({
+    toAddress: "",
+    amount: "",
+})
 
 let house_detail = reactive({
     address: "",
@@ -382,10 +413,11 @@ async function house_detailed(tokenID){
     const axios = require('axios');
     const tokenURI = await contract.tokenURI(tokenID);
     // console.log(tokenURI)
-    const ipfs = await axios.get('https://gateway.pinata.cloud/ipfs/' + tokenURI)
+    const ipfs = await axios.get('https://ipfs.io/ipfs/' + tokenURI)
     
     house_detail = ipfs.data;
     console.log(house_detail)
+    dialogHouseDetail.value = true;
     // return house_detail;
 }
 // userAddress.value
@@ -455,6 +487,18 @@ async function my_house() {
     }));
     houseInfo.value = my_house;
 }
+async function moneyBalanceOf() {
+    const contract = Contract();
+    const balance = await contract.moneyBalanceOf(userAddress.value);
+    ElMessage({ message: '您擁有' + balance + '塊', type: 'success' });
+}
+
+async function moneyTransfer(transfermoney) {
+    const contract = Contract();
+    console.log(transfermoney.toAddress,transfermoney.amount)
+    await contract.money_transfer(transfermoney.toAddress,transfermoney.amount);
+    ElMessage({ message: '成功', type: 'success' });
+}
 
 async function houseBalanceOf() {
     const contract = Contract();
@@ -464,7 +508,7 @@ async function houseBalanceOf() {
 
 async function checkContractExist() {
     const provider = Provider();
-    provider.getCode('0x3DED0e7f88a8C5a7afA2af440B79d0C4E6c9052B').then((code) => {
+    provider.getCode('0x40606bE53A4b6084581FAF760D226Be6417CF53f').then((code) => {
         if (code === '0x') {
             console.log('Contract does not exist in the blockchain');
         } else {
