@@ -39,9 +39,6 @@
             <el-menu-item index="6" v-show="status == 'authenticated'" @click="checkContractExist">
                 <strong> checkContract </strong>
             </el-menu-item>
-            <el-menu-item index="7" v-show="status == 'authenticated'" @click="testButton">
-                <strong> testButton </strong>
-            </el-menu-item>
         </el-menu>
         <div class="flex justify-center" v-show="status == 'authenticated'">
             <div class="w-4/5">
@@ -60,8 +57,11 @@
                     <el-table :data="houseInfo">
                         <el-table-column prop="tokenId" label="TokenId" width="100" />
                         <el-table-column prop="owner" label="House owner" width="300" />
-                        <el-table-column prop="price" label="Price" />
-                        <el-table-column prop="sell" label="On sale" />
+                        <el-table-column prop="price" label="Price" sortable />
+                        <el-table-column prop="sell" label="On sale" :filters="[
+                            { text: 'On sale', value: true },
+                            { text: 'Not On sale', value: false },
+                        ]" :filter-method="filterHandler" />
                         <el-table-column label="Buy">
                             <template v-slot="{ row }">
                                 <!-- !row.sell && owner != userAddress -->
@@ -71,9 +71,9 @@
                         </el-table-column>
                         <el-table-column label="Info">
                             <template v-slot="{ row }">
-                            <ElButton type="primary" @click="house_detailed(row.tokenId)">Info</ElButton>
-                            
-                        </template>
+                                <!-- :disable="!(row.tokenURI || row.tokenURI == '')" -->
+                                <ElButton type="primary" @click="house_detailed(row.tokenId)">Info</ElButton>
+                            </template>
                         </el-table-column>
 
                     </el-table>
@@ -126,8 +126,11 @@
                     <el-table :data="houseInfo">
                         <el-table-column prop="tokenId" label="TokenId" width="100" />
                         <el-table-column prop="owner" label="House owner" width="300" />
-                        <el-table-column prop="price" label="Price" />
-                        <el-table-column prop="sell" label="On sale" />
+                        <el-table-column prop="price" label="Price" sortable />
+                        <el-table-column prop="sell" label="On sale" :filters="[
+                            { text: 'On sale', value: true },
+                            { text: 'Not On sale', value: false },
+                        ]" :filter-method="filterHandler" />
                         <el-table-column label="Modify">
                             <template v-slot="{ row }">
                                 <ElButton type="primary" @click="showModifyDialog(row)" :icon="Edit" />
@@ -231,7 +234,7 @@ let addForm = reactive({
     address: "",
     token_id: "",
     price: "",
-    URI:""
+    URI: ""
 })
 
 let transfermoney = reactive({
@@ -246,7 +249,7 @@ let house_detail = reactive({
     story: "",
     size: "",
     description: "",
-    image : " "
+    image: " "
 })
 
 // avoid ResizeObserver error
@@ -274,16 +277,20 @@ window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
     }
 }
 
+const filterHandler = (
+    value,
+    row,
+    column
+) => {
+    const property = column['property']
+    return row[property] === value
+}
+
 async function confirmModify() {
     console.log("modify house");
     console.log(modifyForm);
     const contract = Contract();
-    try {
-        await contract.set_sell(modifyForm.tokenId, modifyForm.sell);
-    }
-    catch (e) {
-        console.log(e);
-    }
+    await contract.set_sell(modifyForm.tokenId, modifyForm.sell);
     await contract.set_house_price(modifyForm.tokenId, modifyForm.price);
     modifyForm.URI && await contract.setTokenURI(modifyForm.tokenId, modifyForm.URI);
     dialogModifyVisible.value = false;
@@ -381,44 +388,38 @@ async function all_house() {
         const price = await search_price(element);
         const sell = await search_sell(element);
         const tokenURI = await contract.tokenURI(tokenId)
-        if (tokenURI == "") {
-            return {
-                tokenId,
-                owner,
-                price,
-                sell,
-                tokenURI,
-                data: "Have no image."
-            };
-        }
-
         return {
             tokenId,
             owner,
             price,
             sell,
             tokenURI
-            // data
         };
     }));
     houseInfo.value = all_house;
 }
 
-async function house_detailed(tokenID){
+async function house_detailed(tokenID) {
     const contract = Contract();
     const axios = require('axios');
     const tokenURI = await contract.tokenURI(tokenID);
-    const ipfs = await axios.get('https://ipfs.io/ipfs/' + tokenURI)
-    
-    house_detail = ipfs.data;
-    dialogHouseDetail.value = true;
+    try {
+        const ipfs = await axios.get('https://ipfs.io/ipfs/' + tokenURI)
+
+        house_detail = ipfs.data;
+        dialogHouseDetail.value = true;
+    }
+    catch (err) {
+        ElMessage({ message: '該房子的URI可能不正確', type: 'error' });
+        console.log(err);
+    }
 }
 async function Add_house() {
     const address = userAddress.value;
     const contract = Contract();
     try {
         await contract.mint_house(address, addForm.token_id, addForm.price);
-        await contract.setTokenURI(addForm.token_id,addForm.URI);
+        await contract.setTokenURI(addForm.token_id, addForm.URI);
         ElMessage({ message: '增加成功', type: 'success' });
     }
     catch (err) {
@@ -487,8 +488,8 @@ async function moneyBalanceOf() {
 
 async function moneyTransfer(transfermoney) {
     const contract = Contract();
-    console.log(transfermoney.toAddress,transfermoney.amount)
-    await contract.money_transfer(transfermoney.toAddress,transfermoney.amount);
+    console.log(transfermoney.toAddress, transfermoney.amount)
+    await contract.money_transfer(transfermoney.toAddress, transfermoney.amount);
     ElMessage({ message: '成功', type: 'success' });
 }
 
@@ -507,13 +508,6 @@ async function checkContractExist() {
             console.log('Contract exists in the blockchain');
         }
     });
-}
-
-async function testButton() {
-    const contract = Contract();
-    let balance = await contract.moneyBalanceOf('0x5b2a467EDBC5b71fc73E3925863AaD3dAA965A19');
-    console.log(balance);
-    console.log("finish");
 }
 
 </script>
