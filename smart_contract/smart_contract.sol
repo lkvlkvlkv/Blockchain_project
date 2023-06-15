@@ -167,6 +167,8 @@ contract title_deed {
     }
 
     function setTokenURI(uint256 tokenId, string memory URI) public validId(tokenId) {
+        address owner_of = house_owners[tokenId];
+        require(owner_of == msg.sender, "ERROR: You are not house owner");
         house_URI[tokenId] = URI;
     }
 }
