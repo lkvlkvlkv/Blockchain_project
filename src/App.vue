@@ -72,7 +72,8 @@
                         <el-table-column label="Info">
                             <template v-slot="{ row }">
                                 <!-- :disable="!(row.tokenURI || row.tokenURI == '')" -->
-                                <ElButton type="primary" @click="house_detailed(row.tokenId)">Info</ElButton>
+                                <ElButton type="primary" @click="house_detailed(row.tokenId), dialogHouseDetail = True">Info
+                                </ElButton>
                             </template>
                         </el-table-column>
 
